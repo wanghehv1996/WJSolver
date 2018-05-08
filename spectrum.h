@@ -10,7 +10,27 @@
 #include<stdlib.h>
 
 using namespace std;  
-#define PI (3.14159265358979323846)  
+#define PI (3.14159265358979323846)
+const int __res=32;
+double *__omegas;
+void __init_omega_arr(){
+	__omegas = new double[__res*2-1];
+	for(int i=1;i<=32;i++){
+		__omegas[2*i-2]=1./( pow(sin(i*PI/2/(__res+1)),2) + pow(sin(i*PI/2/(__res+1)),2) );
+		if(i<32)
+			__omegas[2*i-1]=1./( pow(sin(i*PI/2/(__res+1)),2) + pow(sin((i+1)*PI/2/(__res+1)),2) );
+	}
+}
+
+double GetOmegaWithK(int k,int res){
+	double omega = 1./(2*sin(k*PI/2/(res+1))*sin(k*PI/2/(res+1)));
+	return omega;
+}
+
+double GetOmegaWithKM(int k, int m, int xres, int yres){
+	double omega = 1./(sin(k*PI/2/(xres+1))*sin(k*PI/2/(xres+1)) + sin(m*PI/2/(yres+1))*sin(m*PI/2/(yres+1)));
+	return omega;
+}
 
 double *project(const double *error, int res){
 	double *ck = new double[res];
@@ -143,35 +163,153 @@ double GetOmega(const double *error, int xres, int yres){
 	return omega;
 }
 
-double GetOmegaLow(double *error, int res){
-	double *ck = project(error, res);
-	double maxck = 0;
-	double maxk = 0;
-	for(int k=0;k<=(res)/2;k++){
-		// std::cout<<ck[k]<<' ';
-		if(maxck<abs(ck[k])){
-			maxck = abs(ck[k]);
-			maxk = k+1;
+double GetOmegaNeigh(const double *error, int xres, int yres){
+	double omega = GetOmega(error, xres, yres);
+	if(!__omegas)
+		__init_omega_arr();
+	for(int i=0;i<2*xres-1;i++){
+		if(omega>=__omegas[i]){
+			std::cout<<__omegas[i]<<' '<<omega<<std::endl;
+			if(i==0)
+				return __omegas[i];
+			if(omega-__omegas[i] < __omegas[i-1]-omega)
+				return __omegas[i];
+			else
+				return __omegas[i-1];
 		}
 	}
-	// std::cout<<std::endl<<maxk<<std::endl;
-	double omega = 1./(2*sin(maxk*PI/2/(res+1))*sin(maxk*PI/2/(res+1)));
-	return omega;
 }
-double GetOmegaHigh(double *error, int res){
+
+double GetBestOmega(const double *error, int res){
 	double *ck = project(error, res);
-	double maxck = 0;
-	double maxk = 0;
-	for(int k=(res)/2;k<(res);k++){
-		// std::cout<<ck[k]<<' ';
-		if(maxck<abs(ck[k])){
-			maxck = abs(ck[k]);
-			maxk = k+1;
+	// std::cout<<std::endl<<maxk<<std::endl;
+	double bestsigck = 1e20;
+	double bestomega = 0;
+	double bestk = 0;
+	
+	for(int k = 1;k<res+1;k++){
+		double omega = GetOmegaWithK(k,res);
+		double sigck = 0;
+		for(int i = 0;i<res;i++){
+			double lambda = 1-2*omega*sin(PI*(i+1)/2/(res+1))*sin(PI*(i+1)/2/(res+1));
+			sigck+=abs(lambda*ck[i]);
+		}
+		std::cout<<k<<" "<<omega<<" makes "<<sigck<<std::endl;
+		if(sigck<bestsigck){
+			bestomega = omega;
+			bestsigck = sigck;
+			bestk = k;
 		}
 	}
+	
+	std::cout<<"accurate k="<<bestk<<" omega="<<bestomega<<std::endl;
+	return bestomega;	
+}
+
+double GetBestOmega(const double *error, int xres ,int yres){
+	double *ckm = project(error, xres, yres);
 	// std::cout<<std::endl<<maxk<<std::endl;
-	double omega = 1./(2*sin(maxk*PI/2/(res+1))*sin(maxk*PI/2/(res+1)));
-	return omega;
+	double bestsigckm = 1e20;
+	double bestomega = 0;
+	double bestk = 0;
+	double bestm = 0;
+	
+	for(int k = 1;k<xres+1;k++)
+	for(int m = 1;m<yres+1;m++){
+		double omega = GetOmegaWithKM(k,m,xres,yres);
+		double sigckm = 0;
+		for(int x = 0;x<xres;x++)
+		for(int y = 0;y<yres;y++){
+			double lambda = 1-omega*( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			sigckm+=abs(lambda*ckm[y*xres+x]);
+		}
+		// std::cout<<k<<" "<<omega<<" makes "<<sigckm<<std::endl;
+		if(sigckm<bestsigckm){
+			bestomega = omega;
+			bestsigckm = sigckm;
+			bestk = k;
+			bestm = m;
+		}
+	}
+	
+	std::cout<<"accurate k="<<bestk<<" m="<<bestm<<" omega="<<bestomega<<std::endl;
+	return bestomega;	
+}
+
+double GetBestROmega(const double *error, int xres ,int yres){
+	double *ckm = project(error, xres, yres);
+	// std::cout<<std::endl<<maxk<<std::endl;
+	double bestsigckm = 1e20;
+	double bestomega = 0;
+	double bestk = 0;
+	double bestm = 0;
+	
+	for(int k = 1;k<xres+1;k++)
+	for(int m = 1;m<yres+1;m++){
+		double omega = GetOmegaWithKM(k,m,xres,yres);
+		double sigckm = 0;
+		for(int x = 0;x<xres;x++)
+		for(int y = 0;y<yres;y++){
+			double lambda = 1-omega*( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			double lambdaA = ( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			sigckm+=abs(lambdaA * lambda*ckm[y*xres+x]);
+		}
+		// std::cout<<k<<" "<<omega<<" makes "<<sigckm<<std::endl;
+		if(sigckm<bestsigckm){
+			bestomega = omega;
+			bestsigckm = sigckm;
+			bestk = k;
+			bestm = m;
+		}
+	}
+	
+	std::cout<<"accurate k="<<bestk<<" m="<<bestm<<" omega="<<bestomega<<std::endl;
+	return bestomega;	
+}
+
+double GetBestOmegaNeigh(const double *error, int xres ,int yres){
+	double *ckm = project(error, xres, yres);
+	double bestsigckm = 1e20;
+	double bestomega = 0;
+	if(!__omegas)
+		__init_omega_arr();
+	for(int i=0;i<2*xres-1;i++){
+		double sigckm = 0;
+		for(int x = 0;x<xres;x++)
+		for(int y = 0;y<yres;y++){
+			double lambda = 1-__omegas[i]*( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			sigckm+=abs(lambda*ckm[y*xres+x]);
+		}
+		if(sigckm<bestsigckm){
+			bestomega = __omegas[i];
+			bestsigckm = sigckm;
+		}
+	}
+	std::cout<<"accurate omega="<<bestomega<<std::endl;
+	return bestomega;	
+}
+
+double GetBestROmegaNeigh(const double *error, int xres ,int yres){
+	double *ckm = project(error, xres, yres);
+	double bestsigckm = 1e20;
+	double bestomega = 0;
+	if(!__omegas)
+		__init_omega_arr();
+	for(int i=0;i<2*xres-1;i++){
+		double sigckm = 0;
+		for(int x = 0;x<xres;x++)
+		for(int y = 0;y<yres;y++){
+			double lambda = 1-__omegas[i]*( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			double lambdaA = ( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			sigckm+=abs(lambdaA * lambda*ckm[y*xres+x]);
+		}
+		if(sigckm<bestsigckm){
+			bestomega = __omegas[i];
+			bestsigckm = sigckm;
+		}
+	}
+	std::cout<<"accurate omega="<<bestomega<<std::endl;
+	return bestomega;	
 }
 
 double k1 = 32/2;

@@ -23,8 +23,8 @@ plt.xlabel('iteration')
 
 plt.subplots_adjust(left=0.05, right=0.95)
 
-res = 32*32
-mat1 = numpy.fromfile('./wjacobi_data_bestrneigh.dat', dtype = numpy.float64)
+res = 32*32*32
+mat1 = numpy.fromfile('./wjacobi_data_largest.dat', dtype = numpy.float64)
 mat1 = mat1.reshape((-1, res*3+1))
 print mat1.shape
 mat1 = mat1[0:-1]
@@ -78,8 +78,8 @@ for idx in range(0,len(omega_line1)):
 print  1/oldomega, omegaidxs
 omegax.append(1./oldomega)
 omegay.append(len(omegaidxs))
-# axOmega.semilogy(range(0,len(omega_line1)), omega_line1)
-axOmega.plot(omegax, omegay)
+axOmega.semilogy(range(0,len(omega_line1)), omega_line1)
+# axOmega.plot(omegax, omegay)
 
 
 axErr.legend()

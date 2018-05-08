@@ -3,7 +3,7 @@
 
 #include "Solver.h"
 #include "function.h"
-#include "spectrum.h"
+#include "spectrum2d.h"
 
 class WeightedJacobiSolver2d : public Solver{
 public:
@@ -65,6 +65,22 @@ public:
 		return 0;
 	}
 
+	int writeTrainDataRCk(const double *residual, const double *ck, std::string filename){
+		std::ofstream fout(filename.c_str(), std::ios::app | std::ios::binary);
+		if(!fout){
+			std::cout<<"WriteIter failed: not such file \'"<<filename<<"\'"<<std::endl;
+			return 0;
+		}
+		for(int i=0; i < _xres * _yres; i++)
+			fout.write((char*)&(residual[i]), sizeof(double));
+		for(int i=0; i < _xres * _yres; i++)
+			fout.write((char*)&(ck[i]), sizeof(double));
+		
+		fout.close();
+
+		return 0;
+	}
+
 	virtual double* Solve(double* b){
 
 		int iter = 0;
@@ -104,7 +120,13 @@ public:
 				sq_error += error[i]*error[i];
 			}
 
+			// _w = GetOmegaNeigh(error,_xres, _yres);
+			// _w = GetBestOmega(error,_xres, _yres);
+			// _w = GetBestROmega(error,_xres, _yres);
+			// _w = GetBestOmegaNeigh(error,_xres, _yres);
+			// _w = GetBestROmegaNeigh(error,_xres, _yres);
 			_w = GetOmega(error,_xres, _yres);
+			// _w=0.666666;
 
 
 			for(int i = 0;i<size;i++){
@@ -128,7 +150,8 @@ public:
 			// SolveWithResidual(result, residual, _xres, _yres);
 
 			//3. Record the result
-			writeTrainData(error, residual, project(error, _xres, _yres), "./traindata2/wjacobi_data.dat");
+			// writeTrainData(error, residual, project(error, _xres, _yres), "./traindata2/wjacobi_data_64best.dat");
+			// writeTrainDataRCk(residual, project(error, _xres, _yres), "./traindata2/wjacobi_data.dat");
 			
 			// Cout Brief Information
 			std::cout<<"| "<<iter<<" | "<<_w<<" | "<<sq_residual<<" | "<<sq_error<<" | "<<std::endl;
