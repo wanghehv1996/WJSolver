@@ -185,9 +185,9 @@ public:
 
 			// _w = GetOmegaNeigh(error,_xres, _yres);
 			// _w = GetBestOmega(error,_xres, _yres);
-			_w = GetBestROmega(error,_xres, _yres);
+			// _w = GetBestROmega(error,_xres, _yres);
 			// _w = GetBestOmegaNeigh(error,_xres, _yres);
-			// _w = GetBestROmegaNeigh(error,_xres, _yres);
+			_w = GetBestROmegaNeigh(error,_xres, _yres);
 			// _w = GetOmega(error,_xres, _yres);
 			// _w=0.666666;
 

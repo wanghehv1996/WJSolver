@@ -26,16 +26,23 @@ double GetOmegaWithKM(int k, int m, int xres, int yres){
 double *__wkx;
 double *__wmy;
 double *__wkwk;
+double *__lambda2k;
+double *__lambda2m;
 int __init_w(int xres, int yres){
-	if(__wkx)
-		delete[] __wkx;
-	if(__wmy)
-		delete[] __wmy;
-	if(__wkwk)
-		delete[] __wkwk;
+	if(__wkx)		delete[] __wkx;
+	if(__wmy)		delete[] __wmy;
+	if(__wkwk)		delete[] __wkwk;
+
+	if(__lambda2k)	delete[] __lambda2k;
+	if(__lambda2m)	delete[] __lambda2m;
+
 	__wkx = new double[xres*xres];
 	__wmy = new double[yres*yres];
+
 	__wkwk = new double[xres*yres];
+
+	__lambda2k = new double[xres];
+	__lambda2m = new double[yres];
 	
 	for(int k=0;k<xres;k++)
 	for(int x=0;x<xres;x++)
@@ -48,15 +55,18 @@ int __init_w(int xres, int yres){
 	for(int k=0;k<xres;k++)
 	for(int m=0;m<yres;m++){
 		double wkwk=0;
-		for(int i=0;i<xres*yres;i++){
+		for(int i=0;i<xres;i++){
 			int x = i%xres;
 			int y = i/xres;
 			double wkm = __wkx[k*xres+x] * __wmy[m*yres+y];
 			wkwk+=wkm*wkm;
 		}
 		__wkwk[m*xres+k] = wkwk;
-		std::cout<<wkwk<<'\t';
 	}
+	for(int k =0;k<xres;k++)
+		__lambda2k[k] = sin((k+1)*PI/2/(xres+1))*sin((k+1)*PI/2/(xres+1));
+	for(int m =0;m<yres;m++)
+		__lambda2m[m] = sin((m+1)*PI/2/(yres+1))*sin((m+1)*PI/2/(yres+1));
 }
 double *project(const double *error, int xres, int yres){
 	double *ck = new double[xres*yres];
@@ -69,17 +79,9 @@ double *project(const double *error, int xres, int yres){
 		double wk_wk=0;
 		for(int y=0;y<yres;y++)
 		for(int x=0;x<xres;x++){
-			// int x = i%xres;
-			// int y = i/xres;
-			//err*w_k
 			double wkm = __wkx[k*xres+x] * __wmy[m*yres+y];
-			// err_wkm += error[i] * sin(1.0*(k+1)*(x+1)*PI/(xres+1)) * sin(1.0*(m+1)*(y+1)*PI/(yres+1));
 			err_wkm += error[y*xres+x] * wkm;
-			//|w_k|
-			// wk_wk += sin(1.0*(k+1)*(x+1)*PI/(xres+1)) * sin(1.0*(k+1)*(x+1)*PI/(xres+1)) *
-			// 		sin(1.0*(m+1)*(y+1)*PI/(yres+1)) * sin(1.0*(m+1)*(y+1)*PI/(yres+1));
-			// wk_wk += wkm*wkm;
-		}		// std::cout<<k<<' '<<m<<' '<<wk_wk<<std::endl;
+		}
 		ck[m *xres + k] = err_wkm/(__wkwk[0]);
 		// std::cout<<k<<' '<<m<<' '<<wk_wk<<' '<<ck[m *xres + k]<<std::endl;
 	}
@@ -110,8 +112,8 @@ double GetOmega(const double *error, int xres, int yres){
 
 
 	double maxck = 0;
-	double maxk = 0;
-	double maxm = 0;
+	int maxk = 0;
+	int maxm = 0;
 	for(int k=0;k<xres;k++)
 	for(int m=0;m<yres;m++){
 		ck[m*xres+k] = ck[m*xres+k]<0?-ck[m*xres+k]:ck[m*xres+k];
@@ -119,15 +121,14 @@ double GetOmega(const double *error, int xres, int yres){
 		// if(maxck<abs(ck[m*xres+k])){
 		if(maxck<(ck[m*xres+k])){
 			maxck = (ck[m*xres+k]);
-			maxk = k+1;
-			maxm = m+1;
+			maxk = k;
+			maxm = m;
 			
 		}
 	}
-	// std::cout<<ck[0*xres+0]<<' '<<ck[0*xres+1]<<' '<<ck[19*xres+19]<<std::endl;
-	
-	double omega = 1./( sin(maxk*PI/2/(xres+1))*sin(maxk*PI/2/(xres+1)) + sin(maxm*PI/2/(yres+1))*sin(maxm*PI/2/(yres+1)));
-	std::cout<<std::endl<<maxk<<' '<<maxm<<' '<<omega<<std::endl;
+	// double omega = 1./( sin(maxk*PI/2/(xres+1))*sin(maxk*PI/2/(xres+1)) + sin(maxm*PI/2/(yres+1))*sin(maxm*PI/2/(yres+1)));
+	double omega = 1./(__lambda2k[maxk]+__lambda2m[maxm]);
+	std::cout<<std::endl<<maxk+1<<' '<<maxm+1<<' '<<omega<<std::endl;
 	return omega;
 }
 
@@ -154,8 +155,8 @@ double GetBestOmega(const double *error, int xres ,int yres){
 	// std::cout<<std::endl<<maxk<<std::endl;
 	double bestsigckm = 1e20;
 	double bestomega = 0;
-	double bestk = 0;
-	double bestm = 0;
+	int bestk = 0;
+	int bestm = 0;
 	
 	for(int k = 1;k<xres+1;k++)
 	for(int m = 1;m<yres+1;m++){
@@ -163,7 +164,8 @@ double GetBestOmega(const double *error, int xres ,int yres){
 		double sigckm = 0;
 		for(int x = 0;x<xres;x++)
 		for(int y = 0;y<yres;y++){
-			double lambda = 1-omega*( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			// double lambda = 1-omega*( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			double lambda = 1-omega*(__lambda2k[x]+__lambda2m[y]);
 			if(lambda*ckm[y*xres+x]>=0)
 				sigckm+=(lambda*ckm[y*xres+x]);
 			else
@@ -187,8 +189,8 @@ double GetBestROmega(const double *error, int xres ,int yres){
 	// std::cout<<std::endl<<maxk<<std::endl;
 	double bestsigckm = 1e20;
 	double bestomega = 0;
-	double bestk = 0;
-	double bestm = 0;
+	int bestk = 0;
+	int bestm = 0;
 	
 	for(int k = 1;k<xres+1;k++)
 	for(int m = 1;m<yres+1;m++){
@@ -196,8 +198,10 @@ double GetBestROmega(const double *error, int xres ,int yres){
 		double sigckm = 0;
 		for(int x = 0;x<xres;x++)
 		for(int y = 0;y<yres;y++){
-			double lambda = 1-omega*( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
-			double lambdaA = ( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			// double lambda = 1-omega*( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			double lambda = 1-omega*(__lambda2k[x]+__lambda2m[y]);
+			// double lambdaA = ( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			double lambdaA = (__lambda2k[x]+__lambda2m[y]);
 			if(lambda*ckm[y*xres+x]>=0)
 				sigckm+=(lambda*ckm[y*xres+x]);
 			else
@@ -225,7 +229,8 @@ double GetBestOmegaNeigh(const double *error, int xres ,int yres){
 		double sigckm = 0;
 		for(int x = 0;x<xres;x++)
 		for(int y = 0;y<yres;y++){
-			double lambda = 1-__omegas[i]*( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			// double lambda = 1-__omegas[i]*( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			double lambda = 1-__omegas[i]*(__lambda2k[x]+__lambda2m[y]);
 			if(lambda*ckm[y*xres+x]>=0)
 				sigckm+=(lambda*ckm[y*xres+x]);
 			else
@@ -236,7 +241,7 @@ double GetBestOmegaNeigh(const double *error, int xres ,int yres){
 			bestsigckm = sigckm;
 		}
 	}
-	std::cout<<"accurate omega="<<bestomega<<std::endl;
+	std::cout<<"accurate omega="<<bestomega<<"sigckm"<<bestsigckm<<std::endl;
 	return bestomega;	
 }
 
@@ -250,19 +255,21 @@ double GetBestROmegaNeigh(const double *error, int xres ,int yres){
 		double sigckm = 0;
 		for(int x = 0;x<xres;x++)
 		for(int y = 0;y<yres;y++){
-			double lambda = 1-__omegas[i]*( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
-			double lambdaA = ( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			// double lambda = 1-__omegas[i]*( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			double lambda = 1-__omegas[i]*(__lambda2k[x]+__lambda2m[y]);
+			// double lambdaA = ( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			double lambdaA = (__lambda2k[x]+__lambda2m[y]);
 			if(lambda*ckm[y*xres+x]>=0)
-				sigckm+=(lambda*ckm[y*xres+x]);
+				sigckm+=(lambdaA * lambda*ckm[y*xres+x]);
 			else
-				sigckm-= (lambda*ckm[y*xres+x]);
+				sigckm-= (lambdaA * lambda*ckm[y*xres+x]);
 		}
 		if(sigckm<bestsigckm){
 			bestomega = __omegas[i];
 			bestsigckm = sigckm;
 		}
 	}
-	std::cout<<"accurate omega="<<bestomega<<std::endl;
+	std::cout<<"accurate omega="<<bestomega<<"sigckm"<<bestsigckm<<std::endl;
 	return bestomega;	
 }
 double CheckWithResidual(double *error,double *residual, int xres, int yres){

@@ -33,20 +33,28 @@ double *__wkx;
 double *__wmy;
 double *__wnz;
 double *__wkwk;
+double *__lambda2k;
+double *__lambda2m;
+double *__lambda2n;
 int __init_w(int xres, int yres, int zres){
-	if(__wkx)
-		delete[] __wkx;
-	if(__wmy)
-		delete[] __wmy;
-	if(__wnz)
-		delete[] __wnz;
-	if(__wkwk)
-		delete[] __wkwk;
+	if(__wkx)		delete[] __wkx;
+	if(__wmy)		delete[] __wmy;
+	if(__wnz)		delete[] __wnz;
+	if(__wkwk)		delete[] __wkwk;
+
+	if(__lambda2k)	delete[] __lambda2k;
+	if(__lambda2m)	delete[] __lambda2m;
+	if(__lambda2n)	delete[] __lambda2n;
+
 	__wkx = new double[xres*xres];
 	__wmy = new double[yres*yres];
 	__wnz = new double[zres*zres];
 
 	__wkwk = new double[xres*yres*zres];
+
+	__lambda2k = new double[xres];
+	__lambda2m = new double[yres];
+	__lambda2n = new double[zres];
 	
 	for(int k=0;k<xres;k++)
 	for(int x=0;x<xres;x++)
@@ -64,7 +72,8 @@ int __init_w(int xres, int yres, int zres){
 	for(int m=0;m<yres;m++)
 	for(int n=0;n<zres;n++){
 		double wkwk=0;
-		for(int i=0;i<xres*yres;i++){
+		// for(int i=0;i<xres*yres*zres;i++){
+		for(int i=0;i<xres;i++){
 			int x = i%xres;
 			int y = i%(xres*yres)/xres;
 			int z = i/(xres*yres);
@@ -74,6 +83,13 @@ int __init_w(int xres, int yres, int zres){
 		__wkwk[m*xres+k] = wkwk;
 		// std::cout<<wkwk<<'\t';
 	}
+
+	for(int k =0;k<xres;k++)
+		__lambda2k[k] = sin((k+1)*PI/2/(xres+1))*sin((k+1)*PI/2/(xres+1));
+	for(int m =0;m<yres;m++)
+		__lambda2m[m] = sin((m+1)*PI/2/(yres+1))*sin((m+1)*PI/2/(yres+1));
+	for(int n =0;n<zres;n++)
+		__lambda2n[n] = sin((n+1)*PI/2/(zres+1))*sin((n+1)*PI/2/(zres+1));
 }
 
 double *project(const double *error, int xres, int yres, int zres){
@@ -88,20 +104,8 @@ double *project(const double *error, int xres, int yres, int zres){
 		for(int z=0;z<zres;z++)
 		for(int y=0;y<yres;y++)
 		for(int x=0;x<xres;x++){
-		// for(int i=0;i<xres*yres*zres;i++){
-			// int x = i%xres;
-			// int y = i%(xres*yres)/xres;
-			// int z = i/(xres*yres);
 			double wkmn = __wkx[k*xres+x]* __wmy[m*yres+y]* __wnz[n*zres+z];
-			//err*w_k
-			// err_wkmn += error[i] * wkmn;
 			err_wkmn += error[z*xres*yres+y*xres+x] * wkmn;
-			//|w_k|
-			// wk_wk += sin(1.0*(k+1)*(x+1)*PI/(xres+1)) * sin(1.0*(k+1)*(x+1)*PI/(xres+1)) *
-			// 		sin(1.0*(m+1)*(y+1)*PI/(yres+1)) * sin(1.0*(m+1)*(y+1)*PI/(yres+1)) *
-			// 		sin(1.0*(n+1)*(z+1)*PI/(zres+1)) * sin(1.0*(n+1)*(z+1)*PI/(zres+1));
-			// wk_wk += wkmn*wkmn;
-				
 		}
 		// ck[n*yres*xres + m*xres + k] = err_wkmn/(wk_wk);
 		ck[n*yres*xres + m*xres + k] = err_wkmn/(__wkwk[0]);
@@ -125,28 +129,25 @@ double GetOmega(const double *error, int xres, int yres, int zres){
 	// }
 
 	double maxck = 0;
-	double maxk = 0;
-	double maxm = 0;
-	double maxn = 0;
+	int maxk = 0;
+	int maxm = 0;
+	int maxn = 0;
 	for(int k=0;k<xres;k++)
 	for(int m=0;m<yres;m++)
 	for(int n=0;n<zres;n++){
 		ck[n*yres*xres + m*xres + k] = ck[n*yres*xres + m*xres + k]<0?-ck[n*yres*xres + m*xres + k]:ck[n*yres*xres + m*xres + k];
 		if(maxck<(ck[n*yres*xres + m*xres + k])){
 			maxck = (ck[n*yres*xres + m*xres + k]);
-			maxk = k+1;
-			maxm = m+1;
-			maxn = n+1;
+
+			maxk = k;
+			maxm = m;
+			maxn = n;
 		}
 	}
-	// std::cout<<ck[0*xres+0]<<' '<<ck[0*xres+1]<<' '<<ck[19*xres+19]<<std::endl;
 	
-	double omega = 3./2./
-		( sin(maxk*PI/2/(xres+1))*sin(maxk*PI/2/(xres+1)) + 
-		sin(maxm*PI/2/(yres+1))*sin(maxm*PI/2/(yres+1)) +
-		sin(maxn*PI/2/(zres+1))*sin(maxn*PI/2/(zres+1)) );
+	double omega = 3./2./(__lambda2k[maxk]+__lambda2m[maxm]+__lambda2n[maxn]);
 
-	std::cout<<std::endl<<maxk<<' '<<maxm<<' '<<maxn<<' '<<omega<<std::endl;
+	std::cout<<std::endl<<maxk+1<<' '<<maxm+1<<' '<<maxn+1<<' '<<omega<<std::endl;
 	return omega;
 }
 
@@ -185,10 +186,11 @@ double GetBestOmega(const double *error, int xres ,int yres, int zres){
 		for(int x = 0;x<xres;x++)
 		for(int y = 0;y<yres;y++)
 		for(int z = 0;z<zres;z++){
-			double lambda = 1-2./3.*omega*( 
-				sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + 
-				sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) +
-				sin(PI*(z+1)/2/(zres+1))*sin(PI*(z+1)/2/(zres+1)) );
+			// double lambda = 1-2./3.*omega*( 
+			// 	sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + 
+			// 	sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) +
+			// 	sin(PI*(z+1)/2/(zres+1))*sin(PI*(z+1)/2/(zres+1)) );
+			double lambda = 1-2./3.*omega*(__lambda2k[x]+__lambda2m[y]+__lambda2n[z]);
 			sigckm+=abs(lambda*ckm[z*yres*xres + y*xres + x]);
 		}
 		// std::cout<<k<<" "<<omega<<" makes "<<sigckm<<std::endl;
@@ -246,11 +248,12 @@ double GetBestOmegaNeigh(const double *error, int xres ,int yres, int zres){
 		double sigckm = 0;
 		for(int x = 0;x<xres;x++)
 		for(int y = 0;y<yres;y++)
-			for(int z = 0;z<zres;z++){
-			double lambda = 1-__omegas[i]*( 
-				sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + 
-				sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) +
-				sin(PI*(z+1)/2/(zres+1))*sin(PI*(z+1)/2/(zres+1)));
+		for(int z = 0;z<zres;z++){
+			double lambda = 1-2./3.*__omegas[i]*(__lambda2k[x]+__lambda2m[y]+__lambda2n[z]);
+			// double lambda = 1-__omegas[i]*( 
+			// 	sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + 
+			// 	sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) +
+			// 	sin(PI*(z+1)/2/(zres+1))*sin(PI*(z+1)/2/(zres+1)));
 			sigckm+=abs(lambda*ckm[z*xres*yres + y*xres + x]);
 		}
 		if(sigckm<bestsigckm){
@@ -262,26 +265,29 @@ double GetBestOmegaNeigh(const double *error, int xres ,int yres, int zres){
 	return bestomega;	
 }
 
-// double GetBestROmegaNeigh(const double *error, int xres ,int yres){
-// 	double *ckm = project(error, xres, yres);
-// 	double bestsigckm = 1e20;
-// 	double bestomega = 0;
-// 	if(!__omegas)
-// 		__init_omega_arr();
-// 	for(int i=0;i<2*xres-1;i++){
-// 		double sigckm = 0;
-// 		for(int x = 0;x<xres;x++)
-// 		for(int y = 0;y<yres;y++){
-// 			double lambda = 1-__omegas[i]*( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
-// 			double lambdaA = ( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
-// 			sigckm+=abs(lambdaA * lambda*ckm[y*xres+x]);
-// 		}
-// 		if(sigckm<bestsigckm){
-// 			bestomega = __omegas[i];
-// 			bestsigckm = sigckm;
-// 		}
-// 	}
-// 	std::cout<<"accurate omega="<<bestomega<<std::endl;
-// 	return bestomega;	
-// }
+double GetBestROmegaNeigh(const double *error, int xres ,int yres, int zres){
+	double *ckm = project(error, xres, yres, zres);
+	double bestsigckm = 1e20;
+	double bestomega = 0;
+	if(!__omegas)
+		__init_omega_arr();
+	for(int i=0;i<3*xres-1;i++){
+		double sigckm = 0;
+		for(int x = 0;x<xres;x++)
+		for(int y = 0;y<yres;y++)
+		for(int z = 0;z<zres;z++){
+			// double lambda = 1-__omegas[i]*( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			double lambda = 1-2./3.*__omegas[i]*(__lambda2k[x]+__lambda2m[y]+__lambda2n[z]);
+			// double lambdaA = ( sin(PI*(x+1)/2/(xres+1))*sin(PI*(x+1)/2/(xres+1)) + sin(PI*(y+1)/2/(yres+1))*sin(PI*(y+1)/2/(yres+1)) );
+			double lambdaA = (__lambda2k[x]+__lambda2m[y]+__lambda2n[z]);
+			sigckm+=abs(lambdaA * lambda*ckm[z*xres*yres + y*xres + x]);
+		}
+		if(sigckm<bestsigckm){
+			bestomega = __omegas[i];
+			bestsigckm = sigckm;
+		}
+	}
+	std::cout<<"accurate omega="<<bestomega<<std::endl;
+	return bestomega;	
+}
 #endif
