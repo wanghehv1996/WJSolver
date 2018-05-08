@@ -1,30 +1,72 @@
 #ifndef SOLVER_2D_H_
 #define SOLVER_2D_H_
 
-#include "Solver.h"
-#include "function.h"
+#include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include <string.h>
+#include <iomanip>
+
 #include "spectrum2d.h"
+#include "function.h"
 
-class WeightedJacobiSolver2d : public Solver{
+#define SQRTPI 1.77245385091
+#define PI (3.14159265358979323846)
+#define PRECISION 1e-6
+
+#define PB_BOUND_Dirichlet	1
+#define PB_BOUND_Neumann	2
+
+
+
+class Solver2d{
 public:
-	WeightedJacobiSolver2d(int xres, int yres, int btype){_xres=xres; _yres=yres; _btype=btype; _mask=NULL;};
-	WeightedJacobiSolver2d(int xres, int yres, int btype, double w){_w=w; _xres=xres; _yres=yres; _btype=btype; _mask=NULL;};
-	void SetW(double w){_w=w;}
+	Solver2d(){_xres=0; _yres=0; _btype=PB_BOUND_Dirichlet; _mask=NULL; _writeflag=false;};
+	Solver2d(int xres, int yres, int btype):_xres(xres), _yres(yres), _btype(btype), _mask(NULL),_writeflag(false){};
+	
+	void SetWriteFlag(bool flag){_writeflag = flag;};
+	void SetMask(int *mask){_mask = mask;};
+	void SetPrecision(double precision){_precision = precision;};
+	void SetMaxIter(int maxiter){_maxiter = maxiter;};
+	void WriteLog(std::string filename, std::string log){
+		std::ofstream ofs(filename.c_str(),std::ios::app);
+		if(ofs)
+			ofs<<log;
+		ofs.close();
+	};
+	virtual double* Solve(double* b){};
 
-	double GetNeighbCoefDot(int x, int y){
+protected:
+	//Eigen::SparseMatrix<double> _A;
+	int *_mask;
+	int _xres;
+	int _yres;
+	int _btype;
+	int _writeflag;
+	double _precision = PRECISION;
+	int _maxiter = 100;
+	int GetIndex(int x, int y){
+		if(x<0||x>_xres-1)	return -1;
+		if(y<0||y>_yres-1)	return -1;
+		return y*_xres+x;
+	}
+
+	double GetFromArray(double *arr, int x, int y){
+		int ind = GetIndex(x,y);
+
+		return (ind>=0 && arr!=NULL)?arr[ind]:0;
+	}
+
+	double GetNeighbCoef(int x, int y){
 		if(x<0||x>_xres-1)	return 0;
 		if(y<0||y>_yres-1)	return 0;
 		if(_mask)
 			if(_mask[GetIndex(x,y)]==PB_BOUND_Dirichlet||_mask[GetIndex(x,y)]==PB_BOUND_Neumann)return 0;
-
 		return -1;
 	}
 
-	double GetCenterCoefDot(int x, int y){
+	double GetCenterCoef(int x, int y){
 		int center = -4;
-		if(_mask)
-			if(_mask[GetIndex(x,y)]==PB_BOUND_Dirichlet||_mask[GetIndex(x,y)])
-				return 1;
 		//suppose we use dirichlet boundary outside
 		int xminusIndex = GetIndex(x-1, y);
 		if(xminusIndex>=0 && _mask)	center = (_mask[xminusIndex]==PB_BOUND_Neumann)?center+1:center;
@@ -44,7 +86,31 @@ public:
 
 	}
 
+public:
+	int writeIter(const double *field, int itr, std::string prefix){
+		char buffer[256];
+		sprintf(buffer,"%04i", itr);
+		std::string number = std::string(buffer);
+		std::string filename = prefix+number+".dat";
 
+		std::ofstream fout(filename.c_str(), std::ios::binary);
+		if(!fout){
+			std::cout<<"WriteIter failed: not such file \'"<<filename<<"\'"<<std::endl;
+			return 0;
+		}
+		for(int i=0;i<_xres*_yres;i++)
+			fout.write((char*)&(field[i]), sizeof(double));
+		fout.close();
+		return 0;
+	}
+};
+
+
+class WeightedJacobiSolver2d : public Solver2d{
+public:
+	WeightedJacobiSolver2d(int xres, int yres, int btype){_xres=xres; _yres=yres; _btype=btype; _mask=NULL;};
+	WeightedJacobiSolver2d(int xres, int yres, int btype, double w){_w=w; _xres=xres; _yres=yres; _btype=btype; _mask=NULL;};
+	void SetW(double w){_w=w;}
 
 	int writeTrainData(const double *error, const double *residual, const double *ck, std::string filename){
 		std::ofstream fout(filename.c_str(), std::ios::app | std::ios::binary);
@@ -104,9 +170,6 @@ public:
 			if(_mask)
 				if(_mask[GetIndex(x,y)]==PB_BOUND_Dirichlet||_mask[GetIndex(x,y)]==PB_BOUND_Neumann)
 					result[ GetIndex(x,y) ] =0;
-			
-			// result[i]=function1d_low(i),resulttmp[i]=0;
-			// result[i]=function1d_wave3(i),resulttmp[i]=0;
 		}
 
 		while(iter<=_maxiter && sq_residual>_precision){
@@ -122,10 +185,10 @@ public:
 
 			// _w = GetOmegaNeigh(error,_xres, _yres);
 			// _w = GetBestOmega(error,_xres, _yres);
-			// _w = GetBestROmega(error,_xres, _yres);
+			_w = GetBestROmega(error,_xres, _yres);
 			// _w = GetBestOmegaNeigh(error,_xres, _yres);
 			// _w = GetBestROmegaNeigh(error,_xres, _yres);
-			_w = GetOmega(error,_xres, _yres);
+			// _w = GetOmega(error,_xres, _yres);
 			// _w=0.666666;
 
 
@@ -134,15 +197,15 @@ public:
 				int y = i/_xres;
 			
 				double all = 
-					GetNeighbCoefDot(x-1,y)*GetFromArray(result,x-1,y)+
-					GetNeighbCoefDot(x+1,y)*GetFromArray(result,x+1,y)+
-					GetNeighbCoefDot(x,y-1)*GetFromArray(result,x,y-1)+
-					GetNeighbCoefDot(x,y+1)*GetFromArray(result,x,y+1)+
-					GetCenterCoefDot(x,y)*GetFromArray(result,x,y);
+					GetNeighbCoef(x-1,y)*GetFromArray(result,x-1,y)+
+					GetNeighbCoef(x+1,y)*GetFromArray(result,x+1,y)+
+					GetNeighbCoef(x,y-1)*GetFromArray(result,x,y-1)+
+					GetNeighbCoef(x,y+1)*GetFromArray(result,x,y+1)+
+					GetCenterCoef(x,y)*GetFromArray(result,x,y);
 
 				//x'=x-w*(Ax)*D_inv+w*b*D_inv
-				if(GetCenterCoefDot(x,y))
-					resulttmp[i] = GetFromArray(result,x,y) - _w*all/GetCenterCoefDot(x,y) + _w*b[i]/GetCenterCoefDot(x,y);
+				if(GetCenterCoef(x,y))
+					resulttmp[i] = GetFromArray(result,x,y) - _w*all/GetCenterCoef(x,y) + _w*b[i]/GetCenterCoef(x,y);
 				residual[i] = b[i]-all;
 				sq_residual += residual[i]*residual[i];
 			}

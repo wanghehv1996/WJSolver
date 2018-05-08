@@ -52,20 +52,6 @@ double divfunction1d_3wave(int x){
 	return -div;
 }
 
-//the divergence function of 
-double randomf(int x){
-	return (-10.+x)*(-10.+x);
-}
-double divfunction1d_random(int x){
-	double maxres = 32;
-	double div = randomf(x-1)+randomf(x+1)-randomf(x);
-	if(x==0)
-		div -= randomf(-1);
-	else
-		div -= randomf(maxres);
-	return -div;
-}
-
 //the divergence function of 1 wave, whose cycle is 1.5*2=3
 double function1d_1wave(int x){
 	double cycle1 = 1;
@@ -209,4 +195,20 @@ double function2d_random(int x, int y){
 	return random*2.0-1.0;
 }
 
+
+//------------------------------
+// 3 DIMENSION
+//------------------------------ 
+double divfunction3d_allzero(int x, int y, int z){
+	return 0;
+}
+
+double function3d_allzero(int x, int y, int z){
+	return 0;
+}
+
+double function3d_random(int x, int y, int z){
+	double random =  1.0*rand()/double(RAND_MAX);
+	return random*2.0-1.0;
+}
 #endif
