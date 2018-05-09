@@ -162,6 +162,75 @@ double GetOmega(const double *error, int xres, int yres){
 	return omega;
 }
 
+double *__kRough;
+double *__omegasRough;
+double __calomega(double lamb, double k){
+	int res=32;
+	return (1.-lamb)/(2*sin(k*PI/2/(res+1))*sin(k*PI/2/(res+1)));
+}
+double __calk(double lamb, double omega){
+	int res=32;
+	double sinv = sqrt((1.-lamb)/omega);
+	if(sinv>1)
+		return res;
+	return asin(sinv)*2*(res+1)/PI;
+}
+//k < k0 use omega[0]
+//k in [k0,k1] use omega[1]
+void __init_omega_rough_arr(){
+	int res = 32;
+	if(__omegasRough)
+		delete[] __omegasRough;
+	if(__kRough)
+		delete[] __kRough;
+	__omegasRough = new double[10];
+	__kRough = new double[10];
+	int k = 1;
+	double lamb = 0;
+	int i = 0;
+	while(k<res){
+		double omega = __calomega(lamb,k);
+		int nk = __calk(-lamb, omega);
+		if(nk==res)//omega is out side
+		{
+			__omegasRough[i]=__calomega(0,(nk+k)/2);
+			__kRough[i]=nk;
+			k=nk;
+		}
+		else{
+			__omegasRough[i]=omega;
+			__kRough[i]=nk;
+			k=nk;
+		}
+		lamb = 0.1;
+		i++;
+	}
+}
+
+double GetOmegaTmp(const double *error, int xres, int yres){
+	double *ck = project(error, xres, yres);
+
+	double maxck = 0;
+	int maxk = 0;
+	int maxm = 0;
+	for(int k=0;k<xres;k++)
+	for(int m=0;m<yres;m++){
+		ck[m*xres+k] = ck[m*xres+k]<0?-ck[m*xres+k]:ck[m*xres+k];
+		// std::cout<<std::endl<<maxck<<' '<<ck[m*xres+k]<<std::endl;
+		// if(maxck<abs(ck[m*xres+k])){
+		if(maxck<(ck[m*xres+k])){
+			maxck = (ck[m*xres+k]);
+			maxk = k;
+			maxm = m;
+			
+		}
+	}
+	// double omega = 1./( sin(maxk*PI/2/(xres+1))*sin(maxk*PI/2/(xres+1)) + sin(maxm*PI/2/(yres+1))*sin(maxm*PI/2/(yres+1)));
+	double omega = 1./(__lambda2k[maxk]+__lambda2m[maxm]);
+	std::cout<<std::endl<<maxk+1<<' '<<maxm+1<<' '<<omega<<std::endl;
+	return omega;
+}
+
 double GetOmegaNeigh(const double *error, int xres, int yres){
 	double omega = GetOmega(error, xres, yres);
 	if(!__omegas)
