@@ -181,15 +181,24 @@ public:
 				error[i] = function2d_allzero(x,y)-result[i];
 				// error[i] = function1d_1wave(i)-result[i];
 				sq_error += error[i]*error[i];
+
+				double all = 
+					GetNeighbCoef(x-1,y)*GetFromArray(result,x-1,y)+
+					GetNeighbCoef(x+1,y)*GetFromArray(result,x+1,y)+
+					GetNeighbCoef(x,y-1)*GetFromArray(result,x,y-1)+
+					GetNeighbCoef(x,y+1)*GetFromArray(result,x,y+1)+
+					GetCenterCoef(x,y)*GetFromArray(result,x,y);
+				residual[i] = b[i]-all;
 			}
 
 			// _w = GetOmegaNeigh(error,_xres, _yres);
 			// _w = GetBestOmega(error,_xres, _yres);
 			// _w = GetBestROmega(error,_xres, _yres);
 			// _w = GetBestOmegaNeigh(error,_xres, _yres);
-			_w = GetBestROmegaNeigh(error,_xres, _yres);
+			// _w = GetBestROmegaNeigh(error,_xres, _yres);
 			// _w = GetOmega(error,_xres, _yres);
 			// _w=0.666666;
+			_w = GetOmegaResidual(residual,_xres,_yres);
 
 
 			for(int i = 0;i<size;i++){

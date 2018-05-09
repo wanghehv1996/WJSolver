@@ -52,14 +52,18 @@ int __init_w(int xres, int yres){
 	for(int y=0;y<yres;y++)
 		__wmy[m*yres+y] =  sin(1.0*(m+1)*(y+1)*PI/(yres+1));
 
-	for(int k=0;k<xres;k++)
-	for(int m=0;m<yres;m++){
+	// for(int k=0;k<xres;k++)
+	// for(int m=0;m<yres;m++){
+	{
+		int k=0,m=0;
 		double wkwk=0;
-		for(int i=0;i<xres;i++){
+		for(int i=0;i<xres*yres;i++){
 			int x = i%xres;
 			int y = i/xres;
+			// wkwk+=sin(1.0*(k+1)*(x+1)*PI/(xres+1))*sin(1.0*(k+1)*(x+1)*PI/(xres+1))*
+			// 	sin(1.0*(m+1)*(y+1)*PI/(yres+1))*sin(1.0*(m+1)*(y+1)*PI/(yres+1));
 			double wkm = __wkx[k*xres+x] * __wmy[m*yres+y];
-			wkwk+=wkm*wkm;
+			wkwk+=wkm*wkm; 
 		}
 		__wkwk[m*xres+k] = wkwk;
 	}
@@ -83,9 +87,35 @@ double *project(const double *error, int xres, int yres){
 			err_wkm += error[y*xres+x] * wkm;
 		}
 		ck[m *xres + k] = err_wkm/(__wkwk[0]);
-		// std::cout<<k<<' '<<m<<' '<<wk_wk<<' '<<ck[m *xres + k]<<std::endl;
+		
 	}
 	return ck;
+}
+
+double GetOmegaResidual(const double *residual, int xres, int yres){
+	double *ck = project(residual, xres, yres);
+
+	double maxck = 0;
+	int maxk = 0;
+	int maxm = 0;
+
+	for(int k=0;k<xres;k++)
+	for(int m=0;m<yres;m++){
+		
+		double lambdaA = 4.0*(__lambda2k[k]+__lambda2k[m]);
+		ck[m*xres + k]/=lambdaA;
+		ck[m*xres+k] = ck[m*xres+k]<0?-ck[m*xres+k]:ck[m*xres+k];
+
+		if(maxck<(ck[m*xres+k])){
+			maxck = (ck[m*xres+k]);
+			maxk = k;
+			maxm = m;
+			
+		}
+	}
+	double omega = 1./(__lambda2k[maxk]+__lambda2m[maxm]);
+	std::cout<<std::endl<<maxk+1<<' '<<maxm+1<<' '<<omega<<std::endl;
+	return omega;
 }
 
 double GetOmega(const double *error, int xres, int yres){
@@ -272,15 +302,21 @@ double GetBestROmegaNeigh(const double *error, int xres ,int yres){
 	std::cout<<"accurate omega="<<bestomega<<"sigckm"<<bestsigckm<<std::endl;
 	return bestomega;	
 }
+
 double CheckWithResidual(double *error,double *residual, int xres, int yres){
 	double *rck = project(residual, xres, yres);
 
 	for(int k=0;k<xres;k++)
 	for(int m=0;m<yres;m++){
-		double lambdaA = 4.0 * ( sin(1.0*(k+1)*PI/2/(xres+1))*sin(1.0*(k+1)*PI/2/(xres+1)) + 
-							sin(1.0*(m+1)*PI/2/(yres+1))*sin(1.0*(m+1)*PI/2/(yres+1)) );
+		double lambdaA = 4.0 * ( __lambda2k[k]+__lambda2m[m] );
 		rck[m*xres + k]/=lambdaA;
 	}
+
+	double *ck = project(error, xres, yres);
+	for(int i=0;i<xres*yres;i++){
+		// std::cout<<i<<"ckck\t"<<rck[i]<<'\t'<<ck[i]<<std::endl;
+	}	
+
 	double *errors = new double[xres * yres];
 
 	for(int i=0;i<xres*yres;i++){
@@ -289,9 +325,11 @@ double CheckWithResidual(double *error,double *residual, int xres, int yres){
 		double err_i=0;
 		for(int k=0;k<xres;k++)
 		for(int m=0;m<yres;m++){
-			err_i+= sin(1.0*(k+1)*(x+1)*PI/(xres+1)) * sin(1.0*(m+1)*(y+1)*PI/(yres+1)) *rck[m*xres+k];
+			// err_i = err_i+sin(1.0*(k+1)*(x+1)*PI/(xres+1)) * sin(1.0*(m+1)*(y+1)*PI/(yres+1)) *ck[m*xres+k];
+			err_i += __wkx[k*xres+x]*__wmy[m*yres+y]*ck[m*xres+k];
 		}
 		errors[i] = err_i;
+		// std::cout<<err_i<<" "<<x<<" "<<y<<" -------------"<<std::endl;
 	}
 
 	for(int i=0;i<xres*yres;i++){
@@ -306,8 +344,7 @@ double SolveWithResidual(double *result,double *residual, int xres, int yres){
 
 	for(int k=0;k<xres;k++)
 	for(int m=0;m<yres;m++){
-		double lambdaA = 4.0 * ( sin(1.0*(k+1)*PI/2/(xres+1))*sin(1.0*(k+1)*PI/2/(xres+1)) + 
-							sin(1.0*(m+1)*PI/2/(yres+1))*sin(1.0*(m+1)*PI/2/(yres+1)) );
+		double lambdaA = 4.0*(__lambda2k[k]+__lambda2k[m]);
 		rck[m*xres + k]/=lambdaA;
 	}
 	double *errors = new double[xres * yres];
@@ -318,7 +355,7 @@ double SolveWithResidual(double *result,double *residual, int xres, int yres){
 		double err_i=0;
 		for(int k=0;k<xres;k++)
 		for(int m=0;m<yres;m++){
-			err_i+= sin(1.0*(k+1)*(x+1)*PI/(xres+1)) * sin(1.0*(m+1)*(y+1)*PI/(yres+1)) *rck[m*xres+k];
+			err_i+= __wkx[k*xres+x] * __wmy[m*yres+y] *rck[m*xres+k];
 		}
 		errors[i] = err_i;
 	}

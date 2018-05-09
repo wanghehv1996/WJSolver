@@ -68,12 +68,14 @@ int __init_w(int xres, int yres, int zres){
 	for(int z=0;z<zres;z++)
 		__wnz[n*zres+z] =  sin(1.0*(n+1)*(z+1)*PI/(zres+1));
 
-	for(int k=0;k<xres;k++)
-	for(int m=0;m<yres;m++)
-	for(int n=0;n<zres;n++){
+	// for(int k=0;k<xres;k++)
+	// for(int m=0;m<yres;m++)
+	// for(int n=0;n<zres;n++){
+	{
+		int k=0,m=0,n=0;
 		double wkwk=0;
 		// for(int i=0;i<xres*yres*zres;i++){
-		for(int i=0;i<xres;i++){
+		for(int i=0;i<xres*yres*zres;i++){
 			int x = i%xres;
 			int y = i%(xres*yres)/xres;
 			int z = i/(xres*yres);
