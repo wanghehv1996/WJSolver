@@ -163,6 +163,7 @@ double GetOmega(const double *error, int xres, int yres){
 }
 
 double *__kRough;
+double *__sin2Rough;
 double *__omegasRough;
 double __calomega(double lamb, double k){
 	int res=32;
@@ -173,7 +174,8 @@ double __calk(double lamb, double omega){
 	double sinv = sqrt((1.-lamb)/omega);
 	if(sinv>1)
 		return res;
-	return asin(sinv)*2*(res+1)/PI;
+	std::cout<<"asing"<<sinv<<' '<<asin(sinv)<<' '<<asin(sinv)*2.*(res+1)/PI<<std::endl;
+	return asin(sinv)*2.*(res+1)/PI;
 }
 //k < k0 use omega[0]
 //k in [k0,k1] use omega[1]
@@ -183,31 +185,51 @@ void __init_omega_rough_arr(){
 		delete[] __omegasRough;
 	if(__kRough)
 		delete[] __kRough;
+	if(__sin2Rough)
+		delete[] __sin2Rough;
+	
 	__omegasRough = new double[10];
 	__kRough = new double[10];
-	int k = 1;
+	__sin2Rough = new double[10];
+	double k = 1;
 	double lamb = 0;
 	int i = 0;
 	while(k<res){
 		double omega = __calomega(lamb,k);
-		int nk = __calk(-lamb, omega);
+		
+		lamb = 0.1;
+		double nk = __calk(-lamb, omega);
+
 		if(nk==res)//omega is out side
 		{
 			__omegasRough[i]=__calomega(0,(nk+k)/2);
 			__kRough[i]=nk;
+			__sin2Rough[i]=2*sin((nk)*PI/2/(res+1))*sin((nk)*PI/2/(res+1));
 			k=nk;
 		}
 		else{
 			__omegasRough[i]=omega;
 			__kRough[i]=nk;
+			__sin2Rough[i]=2*sin((nk)*PI/2/(res+1))*sin((nk)*PI/2/(res+1));
 			k=nk;
 		}
-		lamb = 0.1;
+		std::cout<<omega<<' '<<k<<std::endl;
+		
 		i++;
 	}
 }
 
-double GetOmegaTmp(const double *error, int xres, int yres){
+double __find_omega_rough_arr(double sin2){
+	int i = 0;
+	for(i;i<10;i++){
+		if(__sin2Rough[i]>=sin2)
+			break;
+	}
+	std::cout<<"find __find_omega_rough_arr"<<__kRough[i]<<' '<<__sin2Rough[i]<<' '<<__omegasRough[i]<<std::endl;
+	return __omegasRough[i];
+}
+
+double GetOmegaRough(const double *error, int xres, int yres){
 	double *ck = project(error, xres, yres);
 
 	double maxck = 0;
@@ -226,7 +248,13 @@ double GetOmegaTmp(const double *error, int xres, int yres){
 		}
 	}
 	// double omega = 1./( sin(maxk*PI/2/(xres+1))*sin(maxk*PI/2/(xres+1)) + sin(maxm*PI/2/(yres+1))*sin(maxm*PI/2/(yres+1)));
-	double omega = 1./(__lambda2k[maxk]+__lambda2m[maxm]);
+	double sin2 = __lambda2k[maxk]+__lambda2m[maxm];
+	std::cout<<"sin2="<<sin2;
+	if(!__kRough || !__sin2Rough || !__omegasRough)
+		__init_omega_rough_arr();
+	double omega = __find_omega_rough_arr(sin2);
+	// double omega = 1./(__lambda2k[maxk]+__lambda2m[maxm]);
+	
 	std::cout<<std::endl<<maxk+1<<' '<<maxm+1<<' '<<omega<<std::endl;
 	return omega;
 }
