@@ -24,7 +24,7 @@ plt.xlabel('iteration')
 plt.subplots_adjust(left=0.05, right=0.95)
 
 res = 32*32
-mat1 = numpy.fromfile('./wjacobi_data_bestrneigh.dat', dtype = numpy.float64)
+mat1 = numpy.fromfile('./wjacobi_data_norm.dat', dtype = numpy.float64)
 mat1 = mat1.reshape((-1, res*3+1))
 print mat1.shape
 mat1 = mat1[0:-1]

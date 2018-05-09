@@ -23,11 +23,14 @@ plt.xlabel('iteration')
 
 plt.subplots_adjust(left=0.05, right=0.95)
 
+datname = 'wjacobi_data_largest.dat'
+pngname = 'wavelargest.png'
+
 res = 32*32*32
-mat1 = numpy.fromfile('./wjacobi_data_largest.dat', dtype = numpy.float64)
+mat1 = numpy.fromfile(datname, dtype = numpy.float64)
 mat1 = mat1.reshape((-1, res*3+1))
 print mat1.shape
-mat1 = mat1[0:-1]
+# mat1 = mat1[0:-301]
 
 error_line1=[]
 residual_line1=[]
@@ -58,26 +61,29 @@ omega_mat=omega_mat[:,omega_mat[0].argsort()]
 # print omega_mat
 
 omegaidxs=[]
-omegax=[]
-omegay=[]
+omegax=[0]
+omegay=[0]
 oldomega = 0
-for idx in range(0,len(omega_line1)):
-# for omega in omega_line1:
+# for idx in (range(len(omega_line1)-1,0-1,-1)):
+for idx in reversed(range(0, len(omega_line1))):
+	print idx,omega_mat[0,idx],oldomega
 	omega = omega_mat[0,idx]
 	
-	if abs(omega-oldomega<0.0000001):
+	if abs(omega-oldomega)<0.0000001:
 		# omega_numline[-1]+=1
+		print 'same'
 		omegaidxs.append(omega_mat[1,idx])
 	else:
-		print  oldomega, omegaidxs
+		print  oldomega, omegaidxs,'olo'
 		if oldomega!=0:
 			omegax.append(1./oldomega)
-			omegay.append(len(omegaidxs))
+			omegay.append(len(omegaidxs)+omegay[-1])
 		omegaidxs=[omega_mat[1,idx]]
 		oldomega = omega
-print  1/oldomega, omegaidxs
+
 omegax.append(1./oldomega)
-omegay.append(len(omegaidxs))
+omegay.append(len(omegaidxs)+omegay[-1])
+print omegax, omegay
 axOmega.semilogy(range(0,len(omega_line1)), omega_line1)
 # axOmega.plot(omegax, omegay)
 
@@ -85,7 +91,7 @@ axOmega.semilogy(range(0,len(omega_line1)), omega_line1)
 axErr.legend()
 axR.legend()
 axOmega.legend()
-# plt.savefig('wavebrn.png',dpi=100)
-plt.show()
+plt.savefig(pngname,dpi=100)
+# plt.show()
 plt.close()
 

@@ -290,4 +290,43 @@ double GetBestROmegaNeigh(const double *error, int xres ,int yres, int zres){
 	std::cout<<"accurate omega="<<bestomega<<std::endl;
 	return bestomega;	
 }
+
+double *solveDirect(const double *residual, int xres, int yres, int zres){
+	double *errors = new double[xres*yres*zres];
+	double *lck = new double[xres*yres*zres];
+	if(!__wkx || !__wmy || !__wnz)
+		__init_w(xres,yres,zres);
+	for(int k=0;k<xres;k++)
+	for(int m=0;m<yres;m++)
+	for(int n=0;n<zres;n++){
+		double err_wkmn=0;
+		double wk_wk=0;
+		for(int z=0;z<zres;z++)
+		for(int y=0;y<yres;y++)
+		for(int x=0;x<xres;x++){
+			double wkmn = __wkx[k*xres+x]* __wmy[m*yres+y]* __wnz[n*zres+z];
+			err_wkmn += residual[z*xres*yres+y*xres+x] * wkmn;
+		}
+		// ck[n*yres*xres + m*xres + k] = err_wkmn/(wk_wk);
+		lck[n*yres*xres + m*xres + k] = err_wkmn/(__wkwk[0]);
+		lck[n*yres*xres + m*xres + k] = 
+			lck[n*yres*xres + m*xres + k]/4./(__lambda2k[k]+__lambda2m[m]+__lambda2n[n]);
+
+	}
+
+	for(int z=0;z<zres;z++)
+	for(int y=0;y<yres;y++)
+	for(int x=0;x<xres;x++){
+		double err_i=0;
+		for(int k=0;k<xres;k++)
+		for(int m=0;m<yres;m++)
+		for(int n=0;n<zres;n++){
+			// err_i+= sin(1.0*(k+1)*(x+1)*PI/(xres+1)) * sin(1.0*(m+1)*(y+1)*PI/(yres+1)) *rck[m*xres+k];
+			err_i+= __wkx[k*xres+x]* __wmy[m*yres+y]* __wnz[n*zres+z]*lck[n*yres*xres + m*xres + k];
+		}
+		errors[z*yres*xres + y*xres + x] = err_i;
+	}
+
+	return errors;
+}
 #endif
