@@ -5,7 +5,8 @@
 #include<stdlib.h>
 
 using namespace std;  
-#define PI (3.14159265358979323846)
+// #define PI (3.14159265358979323846)
+#define PI (3.1415926535897932384626433832795028841971693993751)
 const int __res=32;
 double *__omegas;
 void __init_omega_arr(){
@@ -256,6 +257,31 @@ double GetOmegaRough(const double *error, int xres, int yres){
 	// double omega = 1./(__lambda2k[maxk]+__lambda2m[maxm]);
 	
 	std::cout<<std::endl<<maxk+1<<' '<<maxm+1<<' '<<omega<<std::endl;
+	return omega;
+}
+
+//simply from large to small
+//doesnt work because of truncation error
+//same in 2d
+//choose a serial may make things better
+//but not good as choose the largest one
+//hi->lo,hi,hi,...
+double i_os=62;
+int clear_lo = 0;
+double GetOmegaSerial(const double *error, int xres, int yres){
+	if(!__omegas)
+		__init_omega_arr();
+	double omega = __omegas[int(i_os)];
+	if(i_os==32)
+		if(!clear_lo){
+			i_os--;
+			clear_lo=1;
+		}else
+			i_os=62;
+	else
+		i_os-=1;
+	if(i_os<0)
+		i_os=62;
 	return omega;
 }
 

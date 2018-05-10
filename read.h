@@ -5,7 +5,7 @@
 #include<iostream>
 
 double *readfile(std::string filename, int xres, int yres){
-	std::ifstream fin(filename, std::ios::binary);
+	std::ifstream fin(filename.c_str(), std::ios::binary);
 	
 	double *mat = new double[xres*yres];
 
@@ -14,7 +14,7 @@ double *readfile(std::string filename, int xres, int yres){
 		fin.read((char*)&nNum, sizeof(double));
 		mat[i] = nNum;
 	}
-	return nNum;
+	return mat;
 }
 
 #endif

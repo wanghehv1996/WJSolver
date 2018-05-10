@@ -24,7 +24,7 @@ plt.xlabel('iteration')
 plt.subplots_adjust(left=0.05, right=0.95)
 
 res = 32*32
-mat1 = numpy.fromfile('./wjacobi_data_norm.dat', dtype = numpy.float64)
+mat1 = numpy.fromfile('./wjacobi_data_neigh.dat', dtype = numpy.float64)
 mat1 = mat1.reshape((-1, res*3+1))
 print mat1.shape
 mat1 = mat1[0:-1]
@@ -43,7 +43,8 @@ for index,line in enumerate(mat1):
 	omega_line1.append(omega)
 	# print index,numpy.sum(numpy.square(residual)),omega,error,residual,ck
 
-
+error_line1/=error_line1[0]
+residual_line1/=residual_line1[0]
 axErr.semilogy(range(0,len(error_line1)), error_line1)
 
 axR.semilogy(range(0,len(residual_line1)), residual_line1)
@@ -78,8 +79,8 @@ for idx in range(0,len(omega_line1)):
 print  1/oldomega, omegaidxs
 omegax.append(1./oldomega)
 omegay.append(len(omegaidxs))
-# axOmega.semilogy(range(0,len(omega_line1)), omega_line1)
-axOmega.plot(omegax, omegay)
+axOmega.semilogy(range(0,len(omega_line1)), omega_line1)
+# axOmega.plot(omegax, omegay)
 
 
 axErr.legend()

@@ -163,9 +163,9 @@ public:
 		for(int y=0;y<_yres;y++)
 		for(int x=0;x<_xres;x++){
 			// result[i]=function1d_1wave(i),resulttmp[i]=0;
-			// result[i]=function1d_allzero(i),resulttmp[i]=0;
+			result[ GetIndex(x,y) ]=function2d_allzero(x,y),resulttmp[ GetIndex(x,y) ]=0;
 			// result[i]=function1d_2wave(i),resulttmp[i]=0;
-			result[ GetIndex(x,y) ] = function2d_random(x,y),resulttmp[ GetIndex(x, y) ]=0;
+			// result[ GetIndex(x,y) ] = function2d_random(x,y),resulttmp[ GetIndex(x, y) ]=0;
 			// result[ GetIndex(x,y) ] = function2d_waves(x,y),resulttmp[ GetIndex(x, y) ]=0;
 			if(_mask)
 				if(_mask[GetIndex(x,y)]==PB_BOUND_Dirichlet||_mask[GetIndex(x,y)]==PB_BOUND_Neumann)
@@ -198,8 +198,9 @@ public:
 			// _w = GetBestROmegaNeigh(error,_xres, _yres);
 			// _w = GetOmega(error,_xres, _yres);
 			// _w=0.666666;
-			// _w = GetOmegaResidual(residual,_xres,_yres);
-			_w = GetOmegaRough(residual,_xres,_yres);
+			_w = GetOmegaResidual(residual,_xres,_yres);
+			// _w = GetOmegaRough(residual,_xres,_yres);
+			// _w = GetOmegaSerial(residual,_xres,_yres);
 
 
 			for(int i = 0;i<size;i++){
@@ -223,7 +224,7 @@ public:
 			// SolveWithResidual(result, residual, _xres, _yres);
 
 			//3. Record the result
-			writeTrainData(error, residual, project(error, _xres, _yres), "./traindata2/wjacobi_data_rough.dat");
+			writeTrainData(error, residual, project(error, _xres, _yres), "./fieldsimple/wjacobi_data_0010.dat");
 			// writeTrainDataRCk(residual, project(error, _xres, _yres), "./traindata2/wjacobi_data.dat");
 			
 			// Cout Brief Information
