@@ -26,12 +26,15 @@ def ShowLambdaWkm():
 	fig = plt.figure(figsize=(8,6))
 	plt.subplots_adjust(left=0, right=1, bottom=0, top=1, wspace=0.1, hspace=0.1)
 	ax = fig.add_subplot(1, 1, 1, projection='3d')
-	ax.set_title('result')
+	ax.set_title('lambda-(k,m)')
 
 	print mat
 	p = ax.plot_surface(X, Y, mat, rstride=1, cstride=1, cmap=cm.jet, linewidth=0, antialiased=False,alpha=0.7)#,norm=norm)
 	cb = fig.colorbar(p, shrink=0.5)
-	#plt.savefig('lambdawkm.png',dpi=100)
+	ax.set_zlabel('lambda')
+	ax.set_ylabel('m')
+	ax.set_xlabel('k')
+	plt.savefig('2dlambdawkm.png',dpi=100)
 	plt.show()
 
 ShowLambdaWkm()
