@@ -146,12 +146,13 @@ public:
 			sq_residual=0;
 			sq_error =0;
 			for(int i=0; i<size; i++){
-				// error[i] = function1d_allzero(i)-result[i];
-				error[i] = function1d_1wave(i)-result[i];
+				error[i] = function1d_allzero(i)-result[i];
+				// error[i] = function1d_1wave(i)-result[i];
 				sq_error += error[i]*error[i];
 			}
 			// if(iter==0)
 			_w = GetOmega(error,size);
+			// _w = 0.666666;
 			// _w = GetOmega(iter+1,size);
 			// _w = (iter%2!=0)?GetOmegaLow(result,size):GetOmegaHigh(result,size);
 			// _w = GetOmegaSmoothW(result,size);
@@ -183,7 +184,7 @@ public:
 			sprintf(buffer,"%04i", solven);
 			std::string number = std::string(buffer);
 			// writeTrainData(error, residual, project(result,size), "./traindata/wjacobi_data"+number+".dat");
-			// writeTrainData(error, residual, project(result,size), "./traindata/wjacobi_data.dat");
+			writeTrainData(error, residual, project(result,size), "./traindata/wjacobi_databest.dat");
 
 			// Cout Brief Information
 			std::cout<<"| "<<iter<<" | "<<_w<<" | "<<sq_residual<<" | "<<sq_error<<" | "<<std::endl;
