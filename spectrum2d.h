@@ -7,13 +7,13 @@
 using namespace std;  
 // #define PI (3.14159265358979323846)
 #define PI (3.1415926535897932384626433832795028841971693993751)
-const int __res=32;
+const int __res=64;
 double *__omegas;
 void __init_omega_arr(){
 	__omegas = new double[__res*2-1];
-	for(int i=1;i<=32;i++){
+	for(int i=1;i<=__res;i++){
 		__omegas[2*i-2]=1./( pow(sin(i*PI/2/(__res+1)),2) + pow(sin(i*PI/2/(__res+1)),2) );
-		if(i<32)
+		if(i<__res)
 			__omegas[2*i-1]=1./( pow(sin(i*PI/2/(__res+1)),2) + pow(sin((i+1)*PI/2/(__res+1)),2) );
 	}
 }
@@ -159,7 +159,7 @@ double GetOmega(const double *error, int xres, int yres){
 	}
 	// double omega = 1./( sin(maxk*PI/2/(xres+1))*sin(maxk*PI/2/(xres+1)) + sin(maxm*PI/2/(yres+1))*sin(maxm*PI/2/(yres+1)));
 	double omega = 1./(__lambda2k[maxk]+__lambda2m[maxm]);
-	std::cout<<std::endl<<maxk+1<<' '<<maxm+1<<' '<<omega<<std::endl;
+	std::cout<<std::endl<<maxk+1<<' '<<maxm+1<<' '<<maxck<<' '<<omega<<std::endl;
 	return omega;
 }
 
@@ -167,11 +167,11 @@ double *__kRough;
 double *__sin2Rough;
 double *__omegasRough;
 double __calomega(double lamb, double k){
-	int res=32;
+	int res=64;
 	return (1.-lamb)/(2*sin(k*PI/2/(res+1))*sin(k*PI/2/(res+1)));
 }
 double __calk(double lamb, double omega){
-	int res=32;
+	int res=64;
 	double sinv = sqrt((1.-lamb)/omega);
 	if(sinv>1)
 		return res;
@@ -181,7 +181,7 @@ double __calk(double lamb, double omega){
 //k < k0 use omega[0]
 //k in [k0,k1] use omega[1]
 void __init_omega_rough_arr(){
-	int res = 32;
+	int res = 64;
 	if(__omegasRough)
 		delete[] __omegasRough;
 	if(__kRough)
@@ -266,23 +266,151 @@ double GetOmegaRough(const double *error, int xres, int yres){
 //choose a serial may make things better
 //but not good as choose the largest one
 //hi->lo,hi,hi,...
-double i_os=62;
+double i_os=__res*2-2;
 int clear_lo = 0;
 double GetOmegaSerial(const double *error, int xres, int yres){
 	if(!__omegas)
 		__init_omega_arr();
 	double omega = __omegas[int(i_os)];
-	if(i_os==32)
+	if(i_os==__res)
 		if(!clear_lo){
 			i_os--;
 			clear_lo=1;
 		}else
-			i_os=62;
+			i_os=__res*2-2;
 	else
 		i_os-=1;
 	if(i_os<0)
-		i_os=62;
+		i_os=__res*2-2;
 	return omega;
+}
+int i_ot=0;
+int don=0;
+double GetOmegaTypicalChoose(const double *residual, int xres, int yres){
+	if(!__omegas)
+		__init_omega_arr();
+	double *rck = project(residual, xres, yres);
+	int maxk,maxm;
+	double maxrck=0;
+	for(int k=0;k<xres;k++)
+	for(int m=0;m<yres;m++){
+		double lambdaA = 4.0 * ( __lambda2k[k]+__lambda2m[m] );
+		rck[m*xres + k]/=lambdaA;
+		rck[m*xres + k] = rck[m*xres + k]<0? -rck[m*xres + k]:rck[m*xres + k];
+		if(maxrck<rck[m*xres + k]){
+			maxk = k;
+			maxm = m ;
+			maxrck = rck[m*xres + k];
+		}
+	}
+	std::cout<<maxk<<' '<<maxm<<' '<<maxrck<<std::endl;
+
+	double omega = 0;
+	if(i_ot%2==0)
+		if(!don)
+			omega = __omegas[i_ot/4];
+		else omega = 0.6666;
+	else if(i_ot%4==1)
+		omega = __omegas[2*__res-2];
+	else
+		omega = __omegas[64-(i_ot/2+i_ot%4+2)%(32)];
+	i_ot++;
+	if(i_ot>=31*4){
+		don = 1;
+		i_ot=0;
+	}
+	return omega;
+}
+
+/****************
+ * Choose omega by project each line to find maxck
+ ****************/
+double GetOmegaLineChoose(const double *residual, int xres, int yres){
+	double *ck = new double[xres];
+	double maxck=0;
+	int maxckk = 0,maxcky = 0;
+
+	double *cm = new double[yres];
+	double maxcm=0;
+	int maxcmx = 0,maxcmm = 0;
+	
+	for(int y=0;y<yres;y++){
+		for(int k=0;k<xres;k++){
+			double res_wk=0;
+			double wk_wk=1;
+			for(int x=0;x<xres;x++){
+				res_wk += residual[y*xres+x]*__wkx[k*xres+x];
+			}
+			double lambdaA=4.0*__lambda2k[k];
+			ck[k] = res_wk/wk_wk/lambdaA;
+			ck[k] = ck[k]<0? -ck[k]:ck[k];
+			if(ck[k]>maxck){
+				maxck = ck[k];
+				maxckk = k;
+				maxcky = y;
+			}
+		}
+	}
+	for(int x=0;x<xres;x++)
+		for(int m=0;m<yres;m++){
+			double res_wm=0;
+			double wm_wm=1;
+			for(int y=0;y<yres;y++){
+				res_wm += residual[y*xres+x]*__wmy[m*yres+y];
+			}
+			double lambdaA=4.0*__lambda2m[m];
+			cm[m] = res_wm/wm_wm/lambdaA;
+			cm[m] = cm[m]<0? -cm[m]:cm[m];
+			if(cm[m]>maxcm){
+				maxcm = cm[m];
+				maxcmm = m;
+				maxcmx = x;
+			}
+		}
+	std::cout<<"maxck"<<maxck<<" ckk="<<maxckk<<" cky="<<maxcky<<std::endl;
+	std::cout<<"maxcm"<<maxcm<<" cmm="<<maxcmm<<" cmx="<<maxcmx<<std::endl;
+	return 0;
+}
+
+/****************
+ * Choose omega by find maxck in partial section
+ ****************/
+double GetOmegaPartChoose(const double *residual, int xres, int yres){
+	int blocksize = 32;
+	double maxck = 0;
+	int maxk = 0, maxm = 0;
+
+	for(int Y=0;Y<yres;Y+=blocksize)
+	for(int X=0;X<xres;X+=blocksize){
+		double *partR = new double[blocksize*blocksize];
+		for (int y = 0;y<blocksize;y++)
+		for (int x = 0;x<blocksize;x++){
+			partR[y*blocksize+x] = residual[(Y+y)*xres+X+x];
+		}
+
+		double *ck = project(partR,blocksize,blocksize);
+		// double *ck;
+		for(int k=0;k<blocksize;k++)
+		for(int m=0;m<blocksize;m++){
+			
+			double lambdaA = 4.0*(__lambda2k[k]+__lambda2k[m]);
+			ck[m*blocksize + k]/=lambdaA;
+			ck[m*blocksize+k] = ck[m*blocksize+k]<0?-ck[m*blocksize+k]:ck[m*blocksize+k];
+
+			if(maxck<(ck[m*blocksize+k])){
+				maxck = (ck[m*blocksize+k]);
+				maxk = k;
+				maxm = m;
+				
+			}
+		}
+		if(ck!=NULL)
+			delete []ck;
+		// std::cout<<"get ck"<<std::endl;
+	}
+	std::cout<<maxk<<" "<<maxm<<std::endl;
+	// return 1;
+	return GetOmegaWithKM((2*maxk-1),2*maxm-1,xres,yres);
 }
 
 double GetOmegaNeigh(const double *error, int xres, int yres){
