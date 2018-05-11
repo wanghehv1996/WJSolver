@@ -373,7 +373,8 @@ double GetOmegaLineChoose(const double *residual, int xres, int yres){
 }
 
 /****************
- * Choose omega by find maxck in partial section
+ * Choose omega by find maxck in partial field
+ * Wrong! partial field cannot represent the complete field
  ****************/
 double GetOmegaPartChoose(const double *residual, int xres, int yres){
 	int blocksize = 32;
@@ -412,6 +413,57 @@ double GetOmegaPartChoose(const double *residual, int xres, int yres){
 	// return 1;
 	return GetOmegaWithKM((2*maxk-1),2*maxm-1,xres,yres);
 }
+/****************
+ * Choose omega by find maxck in downsample field
+ ****************/
+double GetOmegaDownSample(const double *residual, int xres, int yres){
+	int dsxsize = xres/2;
+	int dsysize = yres/2;
+	double maxck = 0;
+	int maxk = 0, maxm = 0;
+
+
+	double *dsResidual = new double[dsysize*dsxsize];
+	for (int y = 0;y<dsysize;y++)
+	for (int x = 0;x<dsxsize;x++){
+		dsResidual[y*dsxsize+x] = 
+			residual[(2*y+1)*xres+(2*x+1)];
+			// residual[(2*y+1)*xres+(2*x+1)]* 0.25+
+			// residual[(2*y+2)*xres+(2*x+1)]*0.125+
+			// residual[(2*y+1)*xres+(2*x+2)]*0.125+
+			// residual[(2*y+0)*xres+(2*x+1)]*0.125+
+			// residual[(2*y+1)*xres+(2*x+0)]*0.125+
+
+			// residual[(2*y+1)*xres+(2*x+1)]*0.0625+
+			// residual[(2*y+1)*xres+(2*x+1)]*0.0625+
+			// residual[(2*y+1)*xres+(2*x+1)]*0.0625+
+			// residual[(2*y+1)*xres+(2*x+1)]*0.0625;
+	}
+
+	double *ck = project(dsResidual,dsxsize,dsysize);
+	// double *ck;
+	for(int k=0;k<dsxsize;k++)
+	for(int m=0;m<dsysize;m++){
+		
+		double lambdaA = 4.0*(__lambda2k[k]+__lambda2k[m]);
+		ck[m*dsxsize + k]/=lambdaA;
+		ck[m*dsxsize+k] = ck[m*dsxsize+k]<0?-ck[m*dsxsize+k]:ck[m*dsxsize+k];
+
+		if(maxck<(ck[m*dsxsize+k])){
+			maxck = (ck[m*dsxsize+k]);
+			maxk = k;
+			maxm = m;
+			
+		}
+	}
+	if(ck!=NULL)
+		delete []ck;
+	// std::cout<<"get ck"<<std::endl;
+	std::cout<<maxk<<" "<<maxm<<std::endl;
+	// return 1;
+	return GetOmegaWithKM((maxk+1),(maxm+1),xres,yres);
+}
+
 
 double GetOmegaNeigh(const double *error, int xres, int yres){
 	double omega = GetOmega(error, xres, yres);

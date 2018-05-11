@@ -24,7 +24,7 @@ plt.xlabel('iteration')
 plt.subplots_adjust(left=0.05, right=0.95)
 
 res = 32
-mat1 = numpy.fromfile('./wjacobi_data.dat', dtype = numpy.float64)
+mat1 = numpy.fromfile('./wjacobi_data_6_complex_serial.dat', dtype = numpy.float64)
 mat1 = mat1.reshape((-1, res*3+1))
 
 
@@ -41,7 +41,8 @@ for index,line in enumerate(mat1):
 	residual_line1.append(numpy.sum(numpy.square(residual)))
 	omega_line1.append(omega)
 	# print index,numpy.sum(numpy.square(residual)),omega,error,residual,ck
-
+error_line1/=error_line1[0]
+residual_line1/=residual_line1[0]
 
 axErr.semilogy(range(0,len(error_line1)), error_line1)
 
@@ -52,7 +53,7 @@ axOmega.semilogy(range(0,len(omega_line1)), omega_line1)
 axErr.legend()
 axR.legend()
 axOmega.legend()
-plt.savefig('wave.png',dpi=100)
-# plt.show()
+# plt.savefig('wave.png',dpi=100)
+plt.show()
 plt.close()
 

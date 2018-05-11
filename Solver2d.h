@@ -163,9 +163,9 @@ public:
 		for(int y=0;y<_yres;y++)
 		for(int x=0;x<_xres;x++){
 			// result[i]=function1d_1wave(i),resulttmp[i]=0;
-			result[ GetIndex(x,y) ]=function2d_allzero(x,y),resulttmp[ GetIndex(x,y) ]=0;
+			// result[ GetIndex(x,y) ]=function2d_allzero(x,y),resulttmp[ GetIndex(x,y) ]=0;
 			// result[i]=function1d_2wave(i),resulttmp[i]=0;
-			// result[ GetIndex(x,y) ] = function2d_random(x,y),resulttmp[ GetIndex(x, y) ]=0;
+			result[ GetIndex(x,y) ] = function2d_random(x,y),resulttmp[ GetIndex(x, y) ]=0;
 			// result[ GetIndex(x,y) ] = function2d_waves(x,y),resulttmp[ GetIndex(x, y) ]=0;
 			if(_mask)
 				if(_mask[GetIndex(x,y)]==PB_BOUND_Dirichlet||_mask[GetIndex(x,y)]==PB_BOUND_Neumann)
@@ -198,12 +198,23 @@ public:
 			// _w = GetBestROmegaNeigh(error,_xres, _yres);
 			// _w = GetOmega(error,_xres, _yres);
 			// _w=0.666666;
-			// _w = GetOmegaResidual(residual,_xres,_yres);
-			_w = GetOmegaRough(residual,_xres,_yres);
+			_w = GetOmegaResidual(residual,_xres,_yres);
+			// _w = GetOmegaRough(residual,_xres,_yres);
 			// _w = GetOmegaSerial(residual,_xres,_yres);
 			// _w = GetOmegaTypicalChoose(residual,_xres,_yres);
 			// _w = GetOmegaPartChoose(residual,_xres,_yres);
 			// GetOmegaLineChoose(residual,_xres,_yres);
+
+
+			// int q = 7;
+			// if(iter%q==0)
+			// 	 _w= GetOmegaDownSample(residual, _xres, _yres);
+			// else if(iter%q==1) _w= 0.6666;
+			// else if(iter%q==2) _w= 0.5/sin(_xres*PI/(2*_xres+2))/sin(_xres*PI/(2*_xres+2));
+			// else if(iter%q==3) _w= 0.6666;
+			// else if(iter%q==4) _w= 0.6666;
+			// else if(iter%q==5) _w= 0.6666;
+			// else if(iter%q==6) _w= 0.6666;
 
 
 			for(int i = 0;i<size;i++){

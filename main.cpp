@@ -13,7 +13,7 @@ double initRand(){
 
 int main(){
 
-	int xres = 64;//32;//32;
+	int xres = 63;//32;
 	int yres = xres;//32;
 	int zres = xres;
 	/*
@@ -51,21 +51,21 @@ int main(){
 
 	/*
 	 *
-	 *
-	initRand();
-	system("rm ./traindata/wjacobi_data.dat");
-	WeightedJacobiSolver1d* solver1d = new WeightedJacobiSolver1d(xres, PB_BOUND_Dirichlet, 1);
-	solver1d->SetPrecision(1e-10);
-	solver1d->SetMaxIter(100);//(49);
-	double* force = new double [xres];
-	for(int x = 0; x < xres; x++){
-		// force[x] = divfunction1d_random(x);
-		// force[x] = divfunction1d_1wave(x);
-		force[x] = divfunction1d_allzero(x);
-		// force[x] = divfunction1d_3wave(x);
-	}
-	solver1d->Solve(force);
-	 *
+	 */
+	// initRand();
+	// system("rm ./traindata/wjacobi_data.dat");
+	// WeightedJacobiSolver1d* solver1d = new WeightedJacobiSolver1d(xres, PB_BOUND_Dirichlet, 1);
+	// solver1d->SetPrecision(1e-10);
+	// solver1d->SetMaxIter(100);
+	// double* force = new double [xres];
+	// for(int x = 0; x < xres; x++){
+	// 	// force[x] = divfunction1d_random(x);
+	// 	// force[x] = divfunction1d_1wave(x);
+	// 	force[x] = divfunction1d_allzero(x);
+	// 	// force[x] = divfunction1d_3wave(x);
+	// }
+	// solver1d->Solve(force);
+	/*
 	 *
 	 */
 
@@ -73,30 +73,30 @@ int main(){
 	 * read file version
 	 */
 	 
-	WeightedJacobiSolver2d* solver2d = new WeightedJacobiSolver2d(xres, yres, PB_BOUND_Dirichlet, 1);
-	solver2d->SetPrecision(1e-10);
-	solver2d->SetMaxIter(300);//(49);
+	// WeightedJacobiSolver2d* solver2d = new WeightedJacobiSolver2d(xres, yres, PB_BOUND_Dirichlet, 1);
+	// solver2d->SetPrecision(1e-10);
+	// solver2d->SetMaxIter(300);//(49);
 
-	double* force = readfile("./fieldsimple/field_0010.dat",64,64);
-	// for(int i=0;i<100;i++)
-		solver2d->Solve(force);
+	// double* force = readfile("./fieldsimple/field_0010.dat",xres,yres);
+	// // for(int i=0;i<100;i++)
+	// 	solver2d->Solve(force);
 
 	/*
 	 * 2D version
 	 */
 	// initRand();
-	// WeightedJacobiSolver2d* solver2d = new WeightedJacobiSolver2d(xres, yres, PB_BOUND_Dirichlet, 1);
-	// solver2d->SetPrecision(1e-10);
-	// solver2d->SetMaxIter(300);//(49);
+	WeightedJacobiSolver2d* solver2d = new WeightedJacobiSolver2d(xres, yres, PB_BOUND_Dirichlet, 1);
+	solver2d->SetPrecision(1e-10);
+	solver2d->SetMaxIter(300);//(49);
 
-	// double* force = new double [xres * yres];
-	// for(int y = 0; y < yres; y++)
-	// for(int x = 0; x < xres; x++){
-	// 	// force[y*xres + x] = divfunction2d_random(x,y);
-	// 	force[y*xres + x] = divfunction2d_allzero(x,y);
-	// }
-	// // for(int i=0;i<100;i++)
-	// 	solver2d->Solve(force);
+	double* force = new double [xres * yres];
+	for(int y = 0; y < yres; y++)
+	for(int x = 0; x < xres; x++){
+		// force[y*xres + x] = divfunction2d_random(x,y);
+		force[y*xres + x] = divfunction2d_allzero(x,y);
+	}
+	// for(int i=0;i<100;i++)
+		solver2d->Solve(force);
 
 	/*
 	 * 3D version
