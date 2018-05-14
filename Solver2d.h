@@ -197,8 +197,10 @@ public:
 			// _w = GetBestOmegaNeigh(error,_xres, _yres);
 			// _w = GetBestROmegaNeigh(error,_xres, _yres);
 			// _w = GetOmega(error,_xres, _yres);
-			// _w=0.666666;
-			_w = GetOmegaResidual(residual,_xres,_yres);
+			_w=0.666666;
+			// _w=1;
+			
+			// _w = GetOmegaResidual(residual,_xres,_yres);
 			// _w = GetOmegaRough(residual,_xres,_yres);
 			// _w = GetOmegaSerial(residual,_xres,_yres);
 			// _w = GetOmegaTypicalChoose(residual,_xres,_yres);
@@ -238,7 +240,7 @@ public:
 			// SolveWithResidual(result, residual, _xres, _yres);
 
 			//3. Record the result
-			// writeTrainData(error, residual, project(error, _xres, _yres), "./fieldsimple/wjacobi_data_0010_2div3.dat");
+			writeTrainData(error, residual, project(error, _xres, _yres), "./traindata2/wjacobi_data_2div3.dat");
 			// writeTrainDataRCk(residual, project(error, _xres, _yres), "./traindata2/wjacobi_data.dat");
 			
 			// Cout Brief Information

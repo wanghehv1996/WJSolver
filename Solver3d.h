@@ -196,7 +196,8 @@ public:
 			// _w = GetBestOmegaNeigh(error,_xres, _yres,_zres);
 			// _w = GetBestROmegaNeigh(error,_xres, _yres,_zres);
 			// _w = GetOmega(error,_xres, _yres,_zres);
-			_w=0.666666;
+			// _w=0.666666;
+			_w=1;
 			std::cout<<"get"<<std::endl;
 
 			for(int i = 0;i<size;i++){
@@ -224,7 +225,7 @@ public:
 			// SolveWithResidual(result, residual, _xres, _yres);
 
 			//3. Record the result
-			writeTrainData(error, residual, project(error, _xres, _yres, _zres), "./traindata3/wjacobi_data_2div3.dat");
+			writeTrainData(error, residual, project(error, _xres, _yres, _zres), "./traindata3/wjacobi_data_1.dat");
 			// writeTrainDataRCk(residual, project(error, _xres, _yres), "./traindata2/wjacobi_data.dat");
 			
 			// Cout Brief Information

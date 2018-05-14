@@ -13,7 +13,7 @@ double initRand(){
 
 int main(){
 
-	int xres = 63;//32;
+	int xres = 32;//32;
 	int yres = xres;//32;
 	int zres = xres;
 	/*
